@@ -198,6 +198,19 @@ class TestHrAttendanceValidation(TransactionCase):
             }
         )
         self.setup_employee()
+        public_holidays_2021 = self.env["hr.holidays.public"].create(
+            {
+                "year": 2021,
+                "country_id": self.employee.address_id.country_id.id,
+            }
+        )
+        self.env["hr.holidays.public.line"].create(
+            {
+                "name": "Fête nationale",
+                "date": "2021-07-14",
+                "year_id": public_holidays_2021.id,
+            }
+        )
         self.setup_employee_allocation()
         self.setup_employee_holidays()
         self.setup_employee_remote_days()
@@ -558,3 +571,14 @@ class TestHrAttendanceValidation(TransactionCase):
             self.assertEqual(self.employee.hours_current_week, 0)
             self.assertEqual(self.employee.hours_last_month, 13.5)
             self.assertEqual(self.employee.hours_today, 0)
+
+    def test_hr_holidays_public(self):
+        validation = self.HrAttendanceValidation.create(
+            {
+                "employee_id": self.employee.id,
+                "date_from": "2021-07-12",
+                "date_to": "2021-07-18",
+            }
+        )
+
+        self.assertEqual(validation.theoretical_hours, 40 - 8)
