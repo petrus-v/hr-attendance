@@ -5,22 +5,17 @@ from datetime import datetime, time
 from dateutil.relativedelta import relativedelta
 from pytz import timezone, utc
 
-from odoo import SUPERUSER_ID, _, api, fields, models
-from odoo.exceptions import UserError
+from odoo import SUPERUSER_ID, fields, models
 from odoo.osv import expression
 
 
-class HrEmployeeBase(models.AbstractModel):
-    _inherit = "hr.employee.base"
+class HrEmployeeBase(models.Model):
+    _inherit = "hr.employee"
 
-    @api.model
-    def todays_working_times(self, empl_domain):
+    def todays_working_times(self):
         """Method used by my attendance/kiosk view in order
         to display employee planning and working times"""
-        employee = self.search(empl_domain)
-        if not employee:
-            raise UserError(_("Employee not found or not created for current user"))
-        employee.ensure_one()
+        employee = self
         now = fields.Datetime.now()
         tz = timezone(employee.tz)
         now_utc = utc.localize(now)
@@ -122,6 +117,7 @@ class HrEmployeeBase(models.AbstractModel):
         tz = timezone(self.resource_calendar_id.tz)
         dt_calendar_tz = dt_utc.astimezone(tz)
         domain = [
+            ("day_period", "!=", "lunch"),
             ("calendar_id", "=", self.resource_calendar_id.id),
             ("dayofweek", "=", str(dt_calendar_tz.weekday())),
             "|",
@@ -279,11 +275,10 @@ class HrEmployeeBase(models.AbstractModel):
             attendance.is_overtime = True
         return attendances
 
-    def _attendance_action_change(self):
+    def _attendance_action_change(self, geo_information=None):
         """Improve hr_attendance Check In/Check Out action"""
-        HrAttendance = self.env["hr.attendance"]
-        attendance = super()._attendance_action_change()
-        attendances = HrAttendance
+        attendance = super()._attendance_action_change(geo_information=geo_information)
+        attendances = self.env["hr.attendance"].browse()
         if attendance.check_out:
             attendances = self._post_checkout_process_attendance(
                 attendances, attendance
