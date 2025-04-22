@@ -18,34 +18,36 @@ class HrAttendance(models.Model):
         string="Validation sheet",
     )
 
-    @api.model
-    def create(self, *args, **kwargs):
-        attendance = super().create(*args, **kwargs)
-        if attendance._is_validated_employee_week():
-            raise ValidationError(
-                _(
-                    "Cannot create new attendance for employee %s. "
-                    "Attendance for the day of the check in %s "
-                    "has already been reviewed and validated."
+    @api.model_create_multi
+    def create(self, vals_list):
+        attendances = super().create(vals_list)
+        for attendance in attendances:
+            if attendance._is_validated_employee_week():
+                raise ValidationError(
+                    _(
+                        "Cannot create new attendance for employee %(employee_name)s. "
+                        "Attendance for the day of the check in %(checking_date)s "
+                        "has already been reviewed and validated."
+                    )
+                    % dict(
+                        employee_name=attendance.employee_id.name,
+                        checking_date=attendance.check_in.date(),
+                    )
                 )
-                % (
-                    attendance.employee_id.name,
-                    attendance.check_in.date(),
-                )
-            )
-        return attendance
+        return attendances
 
     def unlink(self, *args, **kwargs):
         for record in self:
             if record.validation_sheet_id.state == "validated":
                 raise ValidationError(
                     _(
-                        "Can not remove this attendance (%s, %s) "
+                        "Can not remove this attendance "
+                        "(%(employee_name)s, %(checking_date)s) "
                         "which has been already reviewed and validated."
                     )
-                    % (
-                        record.employee_id.name,
-                        record.check_in.date(),
+                    % dict(
+                        employee_name=record.employee_id.name,
+                        checking_date=record.check_in.date(),
                     )
                 )
         return super().unlink(*args, **kwargs)
@@ -55,12 +57,13 @@ class HrAttendance(models.Model):
             if record.validation_sheet_id.state == "validated":
                 raise ValidationError(
                     _(
-                        "Can not change this attendance (%s, %s) "
+                        "Can not change this attendance "
+                        "(%(employee_name)s, %(checking_date)s) "
                         "which has been already reviewed and validated."
                     )
-                    % (
-                        record.employee_id.name,
-                        record.check_in.date(),
+                    % dict(
+                        employee_name=record.employee_id.name,
+                        checking_date=record.check_in.date(),
                     )
                 )
         res = super().write(*args, **kwargs)
@@ -68,12 +71,13 @@ class HrAttendance(models.Model):
             if record._is_validated_employee_week():
                 raise ValidationError(
                     _(
-                        "Can not change this attendance (%s, %s) "
+                        "Can not change this attendance "
+                        "(%(employee_name)s, %(checking_date)s) "
                         "which would be moved to a validated day."
                     )
-                    % (
-                        record.employee_id.name,
-                        record.check_in.date(),
+                    % dict(
+                        employee_name=record.employee_id.name,
+                        checking_date=record.check_in.date(),
                     )
                 )
         return res
@@ -92,3 +96,11 @@ class HrAttendance(models.Model):
             )
         )
         return validated_week > 0
+
+    def _get_attendances_dates(self):
+        # Overwriting odoo method to disable
+        # HR attendance daily overtime computation
+        daily_overtime_attendances = self.filtered(
+            lambda att: not att.employee_id.weekly_attendance_validation
+        )
+        return super(HrAttendance, daily_overtime_attendances)._get_attendances_dates()
