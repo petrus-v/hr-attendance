@@ -1,6 +1,24 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo noupdate="1">
+<!--
     <record id="hr_holidays.holiday_status_comp" model="hr.leave.type">
-        <field name="is_compensatory">True</field>
-    </record>
+        <field name="name">Compensatory Days</field>
+        <field name="is_compensatory" eval="True" />
+        <field name="overtime_deductible" eval="False" />
+        <field name="requires_allocation">yes</field>
+        <field name="employee_requests">no</field>
+        <field name="leave_validation_type">manager</field>
+        <field name="allocation_validation_type">no</field>
+        <field name="request_unit">hour</field>
+        <field name="allows_negative" eval="True" />
+        <field name="max_allowed_negative">14</field>
+        <field name="leave_notif_subtype_id" ref="hr_holidays.mt_leave" />
+        <field name="responsible_ids" eval="[(4, ref('base.user_admin'))]" />
+        <field name="create_calendar_meeting" eval="True" />
+        <field name="icon_id" ref="hr_holidays.icon_4" />
+        <field name="color">6</field>
+        <field name="company_id" eval="False" />
+        <field name="sequence">4</field>
+    </record> -->
+
 </odoo>

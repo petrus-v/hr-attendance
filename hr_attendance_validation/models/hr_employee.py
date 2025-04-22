@@ -6,10 +6,16 @@ from dateutil.relativedelta import relativedelta
 from odoo import fields, models
 
 
-class HrEmployeeBase(models.AbstractModel):
-    _inherit = "hr.employee.base"
+class HrEmployee(models.Model):
+    _inherit = "hr.employee"
 
     hours_current_week = fields.Float(compute="_compute_hours_current_week")
+    weekly_attendance_validation = fields.Boolean(
+        help=(
+            "If true, overtimes are generated based on weekly validation if not "
+            "use default Odoo behaviors."
+        )
+    )
 
     def _compute_hours(self, start_naive, end_naive):
         self.ensure_one()
@@ -95,9 +101,12 @@ class HrEmployeeBase(models.AbstractModel):
                     "&",
                     ("is_overtime", "=", True),
                     ("is_overtime_due", "=", True),
-                ]
+                ],
+                order="check_in",
             )
-
+            last_attendance = (
+                attendances[-1] if attendances else self.env["hr.attendance"]
+            )
             worked_hours = 0
             for attendance in attendances:
                 delta = (attendance.check_out or now) - max(
@@ -105,3 +114,13 @@ class HrEmployeeBase(models.AbstractModel):
                 )
                 worked_hours += delta.total_seconds() / 3600.0
             employee.hours_today = worked_hours
+            if last_attendance:
+                delta = (
+                    (last_attendance.check_out or now)
+                    - max(last_attendance.check_in, start_naive)
+                ).total_seconds() / 3600.0
+                employee.last_attendance_worked_hours = delta
+                employee.hours_previously_today = employee.hours_today - delta
+            else:
+                employee.last_attendance_worked_hours = 0
+                employee.hours_previously_today = 0

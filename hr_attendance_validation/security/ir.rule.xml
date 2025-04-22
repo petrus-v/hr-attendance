@@ -14,7 +14,7 @@
             <field name="perm_unlink" eval="0" />
             <field
                 name="groups"
-                eval="[(4,ref('hr_attendance.group_hr_attendance'))]"
+                eval="[(4,ref('hr_attendance.group_hr_attendance_own_reader'))]"
             />
         </record>
         <record id="hr_attendance_validation_rule_manager" model="ir.rule">
