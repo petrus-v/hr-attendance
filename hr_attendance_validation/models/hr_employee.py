@@ -6,10 +6,16 @@ from dateutil.relativedelta import relativedelta
 from odoo import fields, models
 
 
-class HrEmployeeBase(models.AbstractModel):
-    _inherit = "hr.employee.base"
+class HrEmployee(models.Model):
+    _inherit = "hr.employee"
 
     hours_current_week = fields.Float(compute="_compute_hours_current_week")
+    weekly_attendance_validation = fields.Boolean(
+        help=(
+            "If true, overtimes are generated based on weekly validation if not "
+            "use default Odoo behaviors."
+        )
+    )
 
     def _compute_hours(self, start_naive, end_naive):
         self.ensure_one()
